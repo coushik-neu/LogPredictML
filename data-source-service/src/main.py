@@ -9,7 +9,7 @@ def main():
     df = load_sales_data("data/SaaS-Sales.csv")
 
     print("Starting data generator...")
-    p
+    start_generator(df, insert_sale)
 
     print("Watching data folder for new CSV files...")
 
