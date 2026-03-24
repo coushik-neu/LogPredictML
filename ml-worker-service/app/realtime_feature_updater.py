@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from db import get_connection
-from model_loader import load_model
+from load_model import load_model
 
 print("Starting realtime ML worker...")
 

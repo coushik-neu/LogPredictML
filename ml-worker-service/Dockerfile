@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "/app/realtime_feature_updater.py"]
+CMD ["python", "app/realtime_feature_updater.py"]
