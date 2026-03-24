@@ -46,6 +46,18 @@ services:
       - .env
     networks:
       - saas-network
+  ml-service-worker:
+    build: ./ml-worker-service
+    container_name: ml-worker-container
+    depends_on:
+      - postgres
+    volumes:
+      - ./models:/models
+    env_file:
+      - .env
+    networks:
+      - saas-network
+  
 
 volumes:
   postgres_data:

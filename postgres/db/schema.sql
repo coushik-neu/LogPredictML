@@ -71,3 +71,13 @@ ON customer_features(customer_id);
 
 CREATE INDEX IF NOT EXISTS idx_customer_predictions_customer
 ON customer_predictions(customer_id);
+
+CREATE TABLE IF NOT EXISTS model_checkpoint (
+    id INT PRIMARY KEY,
+    last_processed_row INT,
+    last_trained_row INT
+);
+
+INSERT INTO model_checkpoint (id, last_processed_row)
+VALUES (1, 0, 0)
+ON CONFLICT (id) DO NOTHING;
