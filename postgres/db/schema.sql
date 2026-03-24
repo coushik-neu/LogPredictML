@@ -41,3 +41,33 @@ ON sales_orders(industry);
 
 CREATE INDEX idx_product 
 ON sales_orders(product);
+
+CREATE TABLE IF NOT EXISTS customer_features (
+    customer_id        INT PRIMARY KEY,
+
+    total_orders       INT,
+    total_sales        NUMERIC(12,2),
+    avg_order_value    NUMERIC(12,2),
+    last_order_days    INT,
+    total_profit       NUMERIC(12,2),
+    discount_usage_rate NUMERIC(5,4),
+
+    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS customer_predictions (
+    customer_id        INT PRIMARY KEY,
+
+    churn_probability  NUMERIC(5,4),
+    churn_prediction   INT,
+    model_version      VARCHAR(20),
+
+    last_updated       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_customer_features_customer
+ON customer_features(customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_customer_predictions_customer
+ON customer_predictions(customer_id);
