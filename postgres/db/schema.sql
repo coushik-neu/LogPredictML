@@ -78,6 +78,6 @@ CREATE TABLE IF NOT EXISTS model_checkpoint (
     last_trained_row INT
 );
 
-INSERT INTO model_checkpoint (id, last_processed_row)
+INSERT INTO model_checkpoint (id, last_processed_row, last_trained_row)
 VALUES (1, 0, 0)
 ON CONFLICT (id) DO NOTHING;

@@ -1,17 +1,31 @@
 import pandas as pd
 import psycopg2
 import os
+import time
 
 # -----------------------------------
 # Connect to Postgres
 # -----------------------------------
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 
-conn = psycopg2.connect(
-    host=os.getenv("DB_HOST"),
-    database=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD")
-)
+while True:
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=5432
+        )
+        print("Connected to PostgreSQL!")
+        break
+    except Exception as e:
+        print("PostgreSQL not ready, retrying in 3 seconds...")
+        time.sleep(3)
 
 cur = conn.cursor()
 
