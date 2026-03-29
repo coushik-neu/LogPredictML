@@ -1,7 +1,7 @@
 import pandas as pd
 import psycopg2
 import os
-import time
+import time, sys
 
 # -----------------------------------
 # Connect to Postgres
@@ -111,5 +111,14 @@ conn.commit()
 
 print("Data inserted successfully!")
 
+os.makedirs("/ready", exist_ok=True)
+with open("/ready/data_loaded.flag", "w") as f:
+    f.write("done")
+
+print("Data ready flag created.")
+
 cur.close()
 conn.close()
+
+
+sys.exit(0)

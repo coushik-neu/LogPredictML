@@ -1,6 +1,7 @@
-version: '1.0'
+version: "1.0"
 
 services:
+
   postgres:
     image: docker.io/postgres:15
     container_name: sales_postgres
@@ -14,6 +15,7 @@ services:
       - ./postgres/db:/docker-entrypoint-initdb.d
     networks:
       - saas-network
+
   data-init:
     build: ./data-init
     container_name: data-init-container
@@ -21,48 +23,58 @@ services:
       - postgres
     env_file:
       - .env
+    volumes:
+      - data_ready:/ready
     networks:
       - saas-network
+
   data-generator:
     build: ./data-source-service
     container_name: data-source-container
     depends_on:
       - postgres
+      - data-init
     volumes:
       - ./data-source-service:/app
+      - data_ready:/ready
     env_file:
       - .env
     networks:
       - saas-network
+
   model-training:
     build: ./model-training-service
     container_name: model-training-container
     depends_on:
       - postgres
+      - data-init
     volumes:
       - ./model-training-service:/app
       - ./models:/models
+      - data_ready:/ready
     env_file:
       - .env
     networks:
       - saas-network
+
   ml-service-worker:
     build: ./ml-worker-service
     container_name: ml-worker-container
     depends_on:
       - postgres
+      - data-init
     volumes:
       - ./models:/models
+      - data_ready:/ready
     env_file:
       - .env
     networks:
       - saas-network
-  
 
 volumes:
   postgres_data:
+  data_ready:
 
 networks:
   saas-network:
     driver: bridge
-  

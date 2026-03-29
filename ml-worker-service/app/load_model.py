@@ -10,9 +10,18 @@ def load_model():
     while True:
         if os.path.exists(MODEL_PATH):
             try:
-                model = joblib.load(MODEL_PATH)
+                obj = joblib.load(MODEL_PATH)
+
+                # If training saved a dictionary
+                if isinstance(obj, dict):
+                    print("[ml-service-worker] | Model dictionary detected")
+                    model = obj["model"]
+                else:
+                    model = obj
+
                 print("[ml-service-worker] | Model loaded successfully!")
                 return model
+
             except Exception as e:
                 print("[ml-service-worker] | Model exists but not ready yet...")
                 print("Error:", e)

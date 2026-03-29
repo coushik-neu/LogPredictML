@@ -7,9 +7,39 @@ import time
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score
-from sklearn.preprocessing import StandardScaler
+
+import os, time
+
+
+print("Waiting for initial dataset...")
+
+while not os.path.exists("/ready/data_loaded.flag"):
+    print("Waiting for data-init to finish...")
+    time.sleep(2)
+
+print("Initial data found. Starting generator...")
 
 print("ML Training Service Started...")
+
+MODEL_PATH = "/models/churn_model.pkl"
+
+FEATURE_COLUMNS = [
+    "total_sales",
+    "total_quantity",
+    "total_profit",
+    "avg_discount",
+    "total_orders",
+    "avg_order_value",
+    "profit_per_order",
+    "orders_per_month",
+    "customer_age_days",
+    "days_between_orders",
+    "discount_dependency",
+    "profit_ratio",
+    "sales_per_order",
+    "quantity_per_order",
+    "recency_ratio"
+]
 
 while True:
     try:
@@ -44,7 +74,10 @@ while True:
 
         print("Rows since last training:", rows_since_last_training)
 
-        if rows_since_last_training < 5000:
+        # Force training if model doesn't exist
+        if not os.path.exists(MODEL_PATH):
+            print("Model not found. Training immediately...")
+        elif rows_since_last_training < 2000:
             print("Not enough new data. Waiting 60 seconds...")
             time.sleep(60)
             continue
@@ -84,11 +117,10 @@ while True:
         ).reset_index()
 
         # -------------------------------------
-        # 6. Behavioural Feature Engineering
+        # 6. Feature Engineering (same as worker)
         # -------------------------------------
 
         customer_df["last_order_days"] = (today - customer_df["last_order_date"]).dt.days
-
         customer_df["customer_age_days"] = (
             customer_df["last_order_date"] - customer_df["first_order_date"]
         ).dt.days + 1
@@ -111,54 +143,25 @@ while True:
         # 7. Create churn label
         # -------------------------------------
 
-        threshold = customer_df["last_order_days"].quantile(0.75)
-        print("Churn threshold:", threshold)
-
-        customer_df["churn"] = (customer_df["last_order_days"] > threshold).astype(int)
-
-        print("\nChurn distribution:")
-        print(customer_df["churn"].value_counts())
-
-        # Fallback if only one class
-        if len(customer_df["churn"].unique()) < 2:
-            print("\nFallback churn logic applied")
-
-            customer_df["churn"] = (
-                (customer_df["last_order_days"] > 10) &
-                (customer_df["total_orders"] < customer_df["total_orders"].median())
-            ).astype(int)
-
-            print("\nNew churn distribution:")
-            print(customer_df["churn"].value_counts())
+        customer_df["churn"] = (
+            (customer_df["last_order_days"] > 7) &
+            (customer_df["total_orders"] <= 2) &
+            (customer_df["orders_per_month"] < 1) &
+            (customer_df["avg_discount"] > 0.3) &
+            (customer_df["total_sales"] < customer_df["total_sales"].median())).astype(int)
 
         # -------------------------------------
         # 8. Features and Target
         # -------------------------------------
 
-        X = customer_df[
-            [
-                "total_sales",
-                "total_quantity",
-                "total_profit",
-                "avg_discount",
-                "total_orders",
-                "avg_order_value",
-                "profit_per_order",
-                "orders_per_month",
-                "customer_age_days",
-                "days_between_orders",
-                "discount_dependency",
-                "profit_ratio",
-                "sales_per_order",
-                "quantity_per_order",
-                "recency_ratio"
-            ]
-        ]
-
+        X = customer_df[FEATURE_COLUMNS]
         y = customer_df["churn"]
 
+        print("\nNumber of features used:", X.shape[1])
+        print("Feature names:", list(X.columns))
+
         if len(y.unique()) < 2:
-            print("\nERROR: Only one class present. Waiting for more data.")
+            print("Only one class found. Waiting for more data...")
             time.sleep(60)
             continue
 
@@ -173,12 +176,6 @@ while True:
             random_state=42,
             stratify=y
         )
-
-        print("\nTrain class distribution:")
-        print(y_train.value_counts())
-
-        print("\nTest class distribution:")
-        print(y_test.value_counts())
 
         # -------------------------------------
         # 10. Train XGBoost Model
@@ -206,12 +203,13 @@ while True:
         print("ROC-AUC:", roc_auc_score(y_test, prob))
 
         # -------------------------------------
-        # 12. Save Model to shared Docker volume
+        # 12. Save model + feature list
         # -------------------------------------
 
-        MODEL_PATH = "/models/churn_model.pkl"
-
-        joblib.dump(model, MODEL_PATH)
+        joblib.dump({
+            "model": model,
+            "features": FEATURE_COLUMNS
+        }, MODEL_PATH)
 
         print("\nModel saved to shared volume:", MODEL_PATH)
 
@@ -228,10 +226,6 @@ while True:
         conn.commit()
 
         print("Training checkpoint updated successfully!")
-
-        # -------------------------------------
-        # 14. Wait before next cycle
-        # -------------------------------------
 
         print("\nWaiting 60 seconds before next check...\n")
         time.sleep(60)

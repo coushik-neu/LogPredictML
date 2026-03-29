@@ -117,8 +117,6 @@ def _run_generator(df, insert_sale):
 
         print("Inserted new generated sale:", new_row["customer_id"])
 
-        time.sleep(1)
-
 
 # -------------------------------------
 # Start / Stop functions

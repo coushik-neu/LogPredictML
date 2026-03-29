@@ -1,9 +1,18 @@
 from load_data import watch_for_new_files, load_sales_data
 from db_writer import insert_sale
 from generator import start_generator, stop_generator
+import os
+import time
 
 
-def main():
+def main(): 
+    print("Waiting for initial dataset...")
+
+    while not os.path.exists("/ready/data_loaded.flag"):
+        print("Waiting for data-init to finish...")
+        time.sleep(2)
+
+    print("Initial data found. Starting generator...")
 
     # 1. Load the initial dataset (used for random generation)
     df = load_sales_data("data/SaaS-Sales.csv")

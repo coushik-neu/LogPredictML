@@ -43,17 +43,28 @@ CREATE INDEX idx_product
 ON sales_orders(product);
 
 CREATE TABLE IF NOT EXISTS customer_features (
-    customer_id        INT PRIMARY KEY,
+    customer_id INT PRIMARY KEY,
 
-    total_orders       INT,
-    total_sales        NUMERIC(12,2),
-    avg_order_value    NUMERIC(12,2),
-    last_order_days    INT,
-    total_profit       NUMERIC(12,2),
-    discount_usage_rate NUMERIC(5,4),
+    total_sales FLOAT,
+    total_quantity INT,
+    total_profit FLOAT,
+    avg_discount FLOAT,
+    total_orders INT,
 
-    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    avg_order_value FLOAT,
+    profit_per_order FLOAT,
+    orders_per_month FLOAT,
+    customer_age_days INT,
+    days_between_orders FLOAT,
+    discount_dependency FLOAT,
+    profit_ratio FLOAT,
+    sales_per_order FLOAT,
+    quantity_per_order FLOAT,
+    recency_ratio FLOAT,
+
+    last_order_days INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS customer_predictions (
