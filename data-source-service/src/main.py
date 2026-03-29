@@ -1,5 +1,5 @@
 from load_data import watch_for_new_files, load_sales_data
-from db_writer import insert_sale
+from publish import publish_sale
 from generator import start_generator, stop_generator
 import os
 import time
@@ -18,7 +18,7 @@ def main():
     df = load_sales_data("data/SaaS-Sales.csv")
 
     print("Starting data generator...")
-    start_generator(df, insert_sale)
+    start_generator(df, publish_sale)
 
     print("Watching data folder for new CSV files...")
 
@@ -39,12 +39,12 @@ def main():
 
             # 4. insert all rows into postgres
             for _, row in new_df.iterrows():
-                insert_sale(row)
+                publish_sale(row)
 
             print("Upload completed!")
 
             # 5. restart generator
-            start_generator(df, insert_sale)
+            start_generator(df, publish_sale)
 
 
 if __name__ == "__main__":

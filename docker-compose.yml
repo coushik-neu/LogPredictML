@@ -15,7 +15,27 @@ services:
       - ./postgres/db:/docker-entrypoint-initdb.d
     networks:
       - saas-network
-
+  rabbitmq:
+    image: docker.io/rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+    env:
+      - .env
+    networks:
+      - saas-network
+  data-worker:
+    build: ./data-worker-service
+    container_name: data-worker-container
+    depends_on:
+      - rabbitmq
+      - postgres
+    env_file:
+      - .env
+    networks:
+      - saas-network
+    
   data-init:
     build: ./data-init
     container_name: data-init-container
@@ -34,6 +54,8 @@ services:
     depends_on:
       - postgres
       - data-init
+      - rabbitmq
+      - data-worker
     volumes:
       - ./data-source-service:/app
       - data_ready:/ready

@@ -143,12 +143,15 @@ while True:
         # 7. Create churn label
         # -------------------------------------
 
-        customer_df["churn"] = (
-            (customer_df["last_order_days"] > 7) &
-            (customer_df["total_orders"] <= 2) &
-            (customer_df["orders_per_month"] < 1) &
-            (customer_df["avg_discount"] > 0.3) &
-            (customer_df["total_sales"] < customer_df["total_sales"].median())).astype(int)
+        customer_df["churn_score"] = 0
+
+        customer_df.loc[customer_df["last_order_days"] > 7, "churn_score"] += 1
+        customer_df.loc[customer_df["total_orders"] <= 2, "churn_score"] += 1
+        customer_df.loc[customer_df["orders_per_month"] < 1, "churn_score"] += 1
+        customer_df.loc[customer_df["avg_discount"] > 0.3, "churn_score"] += 1
+        customer_df.loc[customer_df["total_sales"] < customer_df["total_sales"].median(), "churn_score"] += 1
+
+        customer_df["churn"] = (customer_df["churn_score"] >= 2).astype(int)
 
         # -------------------------------------
         # 8. Features and Target
