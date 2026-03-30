@@ -34,16 +34,15 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
     if type == "high_risk":
         where_clause = "cp.churn_probability > 0.7"
         order_clause = "cp.churn_probability DESC"
-    else:  # ✅ ACTIVE LOW RISK
+    else:  # ✅ ACTIVE (low churn + high orders)
         where_clause = "cp.churn_probability < 0.4"
         order_clause = "cf.total_orders DESC"
 
     # -----------------------------
-    # MAIN QUERY (NO DUPLICATES)
+    # MAIN QUERY (FIXED)
     # -----------------------------
     rows = db.execute(text(f"""
-        SELECT DISTINCT ON (cp.customer_id)
-
+        SELECT
             cp.customer_id,
             cp.churn_probability,
 
@@ -52,10 +51,10 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
             cf.avg_order_value,
             cf.last_order_days,
 
-            so.contact_name,
-            so.customer,
-            so.industry,
-            so.segment
+            MAX(so.contact_name) AS contact_name,
+            MAX(so.customer) AS customer,
+            MAX(so.industry) AS industry,
+            MAX(so.segment) AS segment
 
         FROM customer_predictions cp
 
@@ -67,7 +66,15 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
 
         WHERE {where_clause}
 
-        ORDER BY cp.customer_id, {order_clause}
+        GROUP BY
+            cp.customer_id,
+            cp.churn_probability,
+            cf.total_orders,
+            cf.total_sales,
+            cf.avg_order_value,
+            cf.last_order_days
+
+        ORDER BY {order_clause}
 
         LIMIT :limit OFFSET :offset
     """), {
@@ -76,7 +83,7 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
     }).fetchall()
 
     # -----------------------------
-    # TOTAL COUNT (CORRECT)
+    # TOTAL COUNT (MATCHES FILTER)
     # -----------------------------
     total = db.execute(text(f"""
         SELECT COUNT(*)
@@ -91,6 +98,7 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
         "total": total,
         "has_more": offset + page_size < total
     }
+
 
 
 
