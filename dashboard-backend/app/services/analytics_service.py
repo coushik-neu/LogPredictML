@@ -44,3 +44,83 @@ def get_performance_trend(db):
         }
         for r in rows
     ]
+
+def get_model_performance_trend(db):
+
+    rows = db.execute(text("""
+        SELECT
+            created_at AS date,
+            f1_score,
+            roc_auc
+        FROM model_registry
+        ORDER BY created_at ASC
+    """)).fetchall()
+
+    return [dict(r._mapping) for r in rows]
+
+
+# ----------------------------------------
+# CURRENT MODEL (PRODUCTION)
+# ----------------------------------------
+def get_current_model(db):
+
+    row = db.execute(text("""
+        SELECT
+            model_version,
+            f1_score,
+            roc_auc,
+            rows_used,
+            customers_used,
+            created_at
+        FROM model_registry
+        WHERE is_production = TRUE
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)).fetchone()
+
+    if not row:
+        return {
+            "model_version": "N/A",
+            "f1_score": 0,
+            "roc_auc": 0
+        }
+
+    return dict(row._mapping)
+
+
+# ----------------------------------------
+# ALL MODELS (PAGINATED)
+# ----------------------------------------
+def get_all_models(db, page=1, page_size=10):
+
+    offset = (page - 1) * page_size
+
+    rows = db.execute(text("""
+        SELECT
+            model_id,
+            model_version,
+            f1_score,
+            roc_auc,
+            rows_used,
+            customers_used,
+            is_production,
+            created_at
+        FROM model_registry
+        ORDER BY created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {
+        "limit": page_size,
+        "offset": offset
+    }).fetchall()
+
+    total = db.execute(text("""
+        SELECT COUNT(*) FROM model_registry
+    """)).scalar()
+
+    return {
+        "data": [dict(r._mapping) for r in rows],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "has_more": offset + page_size < total
+    }
