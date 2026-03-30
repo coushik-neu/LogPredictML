@@ -92,3 +92,33 @@ CREATE TABLE IF NOT EXISTS model_checkpoint (
 INSERT INTO model_checkpoint (id, last_processed_row, last_trained_row)
 VALUES (1, 0, 0)
 ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS model_registry (
+
+    model_id SERIAL PRIMARY KEY,
+
+    model_version      VARCHAR(50),
+    model_path         TEXT,
+
+    f1_score           FLOAT,
+    roc_auc            FLOAT,
+
+    rows_used          INT,
+    customers_used     INT,
+
+    is_production      BOOLEAN DEFAULT FALSE,
+
+    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS drift_status (
+    id INT PRIMARY KEY,
+    drift_detected BOOLEAN,
+    drift_score FLOAT,
+    last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO drift_status (id, drift_detected, drift_score)
+VALUES (1, FALSE, 0)
+ON CONFLICT (id) DO NOTHING;
+

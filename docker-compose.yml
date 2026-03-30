@@ -70,6 +70,7 @@ services:
     depends_on:
       - postgres
       - data-init
+      - mlflow
     volumes:
       - ./model-training-service:/app
       - ./models:/models
@@ -88,6 +89,28 @@ services:
     volumes:
       - ./models:/models
       - data_ready:/ready
+    env_file:
+      - .env
+    networks:
+      - saas-network
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.3
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+    volumes:
+      - ./mlflow:/mlflow
+  
+  drift-detector:
+    build: ./drift-detector-service
+    container_name: drift-detector
+    depends_on:
+      - postgres
     env_file:
       - .env
     networks:

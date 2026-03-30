@@ -3,3 +3,4 @@ scikit-learn
 psycopg2-binary
 xgboost
 joblib
+mlflow
