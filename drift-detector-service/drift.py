@@ -61,8 +61,11 @@ while True:
         """, engine)
 
         # -------------------------------------
-        # Compute drift score
+        # Compute drift score (SAFE VERSION)
         # -------------------------------------
+
+        old_data = old_data.apply(pd.to_numeric, errors="coerce")
+        new_data = new_data.apply(pd.to_numeric, errors="coerce")
 
         old_mean = old_data.mean()
         new_mean = new_data.mean()
@@ -70,6 +73,8 @@ while True:
         drift_score = np.abs(old_mean - new_mean).mean()
 
         print("Drift score:", drift_score)
+
+        drift_score = float(drift_score)
 
         # -------------------------------------
         # Decide drift
