@@ -27,6 +27,15 @@ services:
       - .env
     networks:
       - saas-network
+  dashboard-frontend:
+    build: ./dashboard-frontend
+    container_name: dashboard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - dashboard-backend
+    networks:
+      - saas-network
   rabbitmq:
     image: docker.io/rabbitmq:3-management
     container_name: rabbitmq
