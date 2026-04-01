@@ -31,7 +31,7 @@ def get_high_risk_customers(db, type: str = "active", page: int = 1, page_size: 
     # -----------------------------
     # FILTER + ORDER LOGIC
     # -----------------------------
-    if type == "high_risk":
+    if type == "risk":
         where_clause = "cp.churn_probability > 0.7"
         order_clause = "cp.churn_probability DESC"
     else:  # ✅ ACTIVE (low churn + high orders)

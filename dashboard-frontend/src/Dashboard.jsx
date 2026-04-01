@@ -8,11 +8,12 @@ import { AlertTriangle, Users, DollarSign, Brain, ExternalLink } from "lucide-re
 const WS_URL = "ws://localhost:8000/ws/dashboard";
 const COLORS = ["#ef4444", "#f59e0b", "#22c55e"];
 
-const Card = ({ children }) => (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-4 h-full">
+const Card = ({ children, className = "" }) => (
+    <div className={`bg-zinc-800 border border-zinc-700 rounded-2xl p-4 h-full min-h-0 ${className}`}>
         {children}
     </div>
 );
+
 
 const DarkTooltip = ({ active, payload }) => {
     if (!active || !payload) return null;
@@ -118,12 +119,17 @@ export default function Dashboard() {
             setPerformance(perfData || []);
             setModels(modelsData?.data || []);
 
-            setTrendData(
-                (revenueTrend || []).slice(-30).map((r, i) => ({
-                    time: i,
-                    revenue: r.sales || 0
-                }))
-            );
+            const data = (revenueTrend || []).slice(-30);
+
+setTrendData(
+    data.map((r, i) => ({
+        time: i,
+        revenue: i === 0 ? 0 : (r.sales || 0) - (data[i - 1]?.sales || 0),
+        raw: r.sales || 0
+    }))
+);
+
+
         }
 
         loadInitial();
@@ -209,16 +215,23 @@ export default function Dashboard() {
             }
 
             if (msg.event === "business_update") {
-                setRevenue(msg.data?.total_revenue || 0);
+    const current = msg.data?.total_revenue || 0;
 
-                setTrendData(prev => [
-                    ...prev.slice(-49),
-                    {
-                        time: prev.length,
-                        revenue: msg.data?.total_revenue || 0
-                    }
-                ]);
+    setRevenue(current);
+
+    setTrendData(prev => {
+        const lastRaw = prev.length > 0 ? prev[prev.length - 1].raw || 0 : 0;
+
+        return [
+            ...prev.slice(-49),
+            {
+                time: prev.length,
+                revenue: current - lastRaw, // ✅ incremental change
+                raw: current               // ✅ keep absolute
             }
+        ];
+    });
+}
         };
 
         return () => ws.close();
@@ -231,9 +244,10 @@ export default function Dashboard() {
     ];
 
     const perfData = (performance || []).map((p, i) => ({
-        time: i,
-        f1: p?.f1_score || 0
-    }));
+    time: i,
+    f1: (p?.f1_score || 0) - 0.99  // normalize
+}));
+
 
     return (
         <div className="bg-zinc-950 text-white h-screen p-4 flex flex-col gap-4 overflow-hidden">
@@ -256,10 +270,10 @@ export default function Dashboard() {
             </div>
 
             {/* MAIN GRID */}
-            <div className="grid grid-cols-5 gap-4 flex-1 overflow-hidden">
+             <div className="grid grid-cols-5 gap-4 flex-1 overflow-hidden min-h-0">
 
                 {/* LEFT (UNCHANGED FULLY) */}
-                <div className="col-span-3 grid grid-rows-2 gap-4">
+                <div className="col-span-3 grid grid-rows-2 gap-4 min-h-0">
 
                     {/* PIE + MODELS */}
                     <Card>
@@ -350,7 +364,7 @@ export default function Dashboard() {
                                     <XAxis hide />
                                     <YAxis hide />
                                     <Tooltip content={<DarkTooltip />} />
-                                    <Area dataKey="revenue" stroke="#3b82f6" fill="#3b82f633" />
+                                    <Area  type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#3b82f633" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </Card>
@@ -360,7 +374,7 @@ export default function Dashboard() {
                             <ResponsiveContainer width="100%" height={180}>
                                 <AreaChart data={perfData}>
                                     <XAxis hide />
-                                    <YAxis hide />
+                                    <YAxis domain={[0.98, 1]} hide />
                                     <Tooltip content={<DarkTooltip />} />
                                     <Area dataKey="f1" stroke="#22c55e" fill="#22c55e33" />
                                 </AreaChart>
@@ -370,9 +384,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* RIGHT WITH DROPDOWN */}
-                <div className="col-span-2 flex flex-col overflow-hidden">
+                <div className="col-span-2 flex flex-col overflow-hidden min-h-0">
 
-                    <Card>
+                    <Card className="flex flex-col flex-1 overflow-hidden min-h-0">
 
                         <div className="flex justify-between items-center mb-2">
                             <h2>
@@ -392,7 +406,7 @@ export default function Dashboard() {
                         <div
                             ref={listRef}
                             onScroll={handleScroll}
-                            className="overflow-y-auto flex-1 space-y-2 pr-2"
+                            className="overflow-y-auto flex-1 space-y-2 pr-2 min-h-0"
                         >
 
                             {customers.map(c => (
@@ -427,25 +441,26 @@ export default function Dashboard() {
 
             {/* DETAILS */}
             {selectedCustomer && (
-                <div className="grid grid-cols-5 gap-4 h-[200px]">
+                <div className="grid grid-cols-5 gap-4 h-[200px] min-h-0">
 
                     <div className="col-span-2">
-
                         <Card>
                             <h2>Customer</h2>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div className="grid grid-cols-3 gap-2 mt-2">
                                 <Info label="Orders" value={selectedCustomer.total_orders} />
-                                <Info label="Sales" value={selectedCustomer.total_sales} />
-                                <Info label="Avg Value" value={selectedCustomer.avg_order_value} />
-                                <Info label="Last Order" value={selectedCustomer.last_order_days} />
+                                <Info label="Sales" value={selectedCustomer.total_sales.toFixed(3)} />
+                                <Info label="Avg Value" value={selectedCustomer.avg_order_value.toFixed(3)} />
+                                <Info label="Customer" value={selectedCustomer.customer} />
+                                <Info label="Industry" value={selectedCustomer.industry} />
+                                <Info label="Segment" value={selectedCustomer.segment} />
                             </div>
                         </Card>
                     </div>
 
                     {/* ORDERS SAME AS BEFORE */}
-                    <div className="col-span-3 flex flex-col overflow-hidden">
+                    <div className="col-span-3 flex flex-col overflow-hidden min-h-0">
 
-                        <Card>
+                    <Card className="flex flex-col h-full">
                             <h2 className="text-sm font-semibold mb-2">Recent Orders</h2>
 
                             {/* HEADER */}
@@ -461,7 +476,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* SCROLL */}
-                            <div className="max-h-[150px] overflow-y-auto mt-2 space-y-1 pr-1">
+                            <div className="flex-1 overflow-y-auto mt-2 space-y-1 pr-1 min-h-0">
 
                                 {orders.length === 0 ? (
                                     <div className="text-center text-gray-500 text-sm py-4">
